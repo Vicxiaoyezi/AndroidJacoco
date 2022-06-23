@@ -1,0 +1,23 @@
+apply plugin: 'maven'
+
+uploadArchives {
+    configuration = configurations.archives
+    repositories {
+        mavenDeployer {
+            repository(url: uri('../repo')) {
+                pom.groupId = GROUP_ID
+                pom.artifactId = ARTIFACT_ID
+                pom.version = VERSION
+            }
+            pom.whenConfigured { pom ->
+                pom.dependencies.forEach { dep ->
+                    if (dep.getVersion() == "unspecified") {
+                        println("---modify the dependenies module in pom.xml--->>" + dep.getArtifactId())
+                        dep.setGroupId(GROUP_ID)
+                        dep.setVersion(VERSION)
+                    }
+                }
+            }
+        }
+    }
+}

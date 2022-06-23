@@ -1,5 +1,4 @@
 apply plugin: 'com.android.library'
-group='com.github.Vicxiaoyezi'
 
 android {
     compileSdkVersion 29
@@ -15,6 +14,9 @@ android {
         targetCompatibility = "1.8"
     }
 }
+
+apply from: rootProject.file('gradle/mvnen_local.gradle')
+
 dependencies {
     implementation fileTree(dir: "libs", include: ["*.jar"])
     compileOnly('com.squareup.okhttp3:okhttp:3.14.9')
