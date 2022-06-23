@@ -1,0 +1,14 @@
+apply plugin: 'java-library'
+apply plugin: 'kotlin'
+group='com.github.Vicxiaoyezi'
+
+dependencies {
+    implementation fileTree(dir: 'libs', include: ['*.jar'])
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:${rootProject.ext.otherDep.kotlin}"
+    api group: 'org.ow2.asm', name: 'asm', version: '9.2'
+    api group: 'org.ow2.asm', name: 'asm-commons', version: '9.2'
+    api group: 'org.ow2.asm', name: 'asm-tree', version: '9.2'
+}
+
+sourceCompatibility = "1.8"
+targetCompatibility = "1.8"

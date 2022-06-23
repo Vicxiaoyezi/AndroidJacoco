@@ -1,0 +1,22 @@
+apply plugin: 'kotlin'
+apply plugin: 'groovy'
+group='com.github.Vicxiaoyezi'
+
+dependencies {
+    implementation fileTree(dir: 'libs', include: ['*.jar'])
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:${rootProject.ext.otherDep.kotlin}"
+    implementation gradleApi()//gradle sdk
+    implementation localGroovy()//groovy sdk
+    implementation 'com.android.tools.build:gradle:4.2.1'
+    implementation 'com.android.tools.build:transform-api:1.5.0'
+    implementation group: 'org.ow2.asm', name: 'asm', version: '9.2'
+    implementation group: 'org.ow2.asm', name: 'asm-commons', version: '9.2'
+    implementation group: 'org.ow2.asm', name: 'asm-tree', version: '9.2'
+    implementation ('org.jacoco:org.jacoco.report:0.8.8'){
+        exclude group: 'org.jacoco', module: 'org.jacoco.core'
+    }
+    implementation project(':jacoco-core')
+}
+
+sourceCompatibility = "1.8"
+targetCompatibility = "1.8"

@@ -1,0 +1,5 @@
+ext {
+  otherDep = [
+      kotlin: '1.5.31'
+  ]
+}
