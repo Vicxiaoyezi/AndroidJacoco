@@ -1,0 +1,21 @@
+apply plugin: 'com.android.library'
+group='com.github.Vicxiaoyezi'
+
+android {
+    compileSdkVersion 29
+    buildToolsVersion "30.0.2"
+
+    defaultConfig {
+        minSdkVersion 16
+        targetSdkVersion 29
+    }
+
+    compileOptions {
+        sourceCompatibility = "1.8"
+        targetCompatibility = "1.8"
+    }
+}
+dependencies {
+    implementation fileTree(dir: "libs", include: ["*.jar"])
+    compileOnly('com.squareup.okhttp3:okhttp:3.14.9')
+}

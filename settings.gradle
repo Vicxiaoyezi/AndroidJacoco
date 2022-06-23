@@ -1,2 +1,5 @@
 rootProject.name = "PokemonXerneas"
 include ':app'
+include ':jacoco-core'
+include ':rt'
+include ':plugin'
