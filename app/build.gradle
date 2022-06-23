@@ -1,6 +1,29 @@
 plugins {
     id 'com.android.application'
     id 'kotlin-android'
+    id 'com.jacoco.android'
+}
+
+//代码覆盖配置
+jacocoCoverageConfig {
+    jacocoEnable = true //开关
+    contrastBranch = "release"//要对比的分支名
+    host = "http://10.0.0.99:8080"//下载服务host
+    coverageDirectory = "${project.buildDir.absolutePath}/outputs/coverage"//ec 下载存放路径
+    sourceDirectories = getAllJavaDir() //源码路径
+    classDirectories = ["${rootProject.projectDir.absolutePath}/app/classes"] //classes 路径
+    gitPushShell = "${project.projectDir}/shell/gitPushShell.sh" //提交git 命令
+    copyClassShell = "${project.projectDir}/shell/pullDiffClass.sh" //copy classes 命令
+    includes = ['com.pokemon.xerneas'] //要 包含的class 包名
+    excludeClass = { // return true 表示要排除的class
+//        println("exclude it=${it}")
+//        return it.contains("databinding")
+        return false
+    }
+    excludeMethod = {//return true 表示要排除此方法
+//        println("excludeMethod it=${it}")
+        return false
+    }
 }
 
 android {
@@ -20,22 +43,47 @@ android {
     buildTypes {
         release {
             minifyEnabled false
+            buildConfigField "String", "host", "\"${jacocoCoverageConfig.host}\""
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
+        debug{
+            buildConfigField "String", "host", "\"${jacocoCoverageConfig.host}\""
+        }
     }
+
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
+        incremental = true  //开启增量编译
     }
+
     kotlinOptions {
         jvmTarget = '1.8'
     }
 }
 
 dependencies {
-
+    implementation fileTree(dir: "libs", include: ["*.jar"])
+    implementation "org.jetbrains.kotlin:kotlin-stdlib:${rootProject.ext.otherDep.kotlin}"
     implementation 'androidx.core:core-ktx:1.3.2'
     implementation 'androidx.appcompat:appcompat:1.2.0'
     implementation 'com.google.android.material:material:1.3.0'
     implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
+    implementation 'com.squareup.okhttp3:okhttp:3.14.9'
+
+    implementation('org.jacoco:org.jacoco.report:0.8.8') {
+        exclude group: 'org.jacoco', module: 'org.jacoco.core'
+    }
+
+    debugImplementation "com.xyz.jacoco:rt:${VERSION}"
+    releaseImplementation "com.xyz.jacoco:rt:${VERSION}"
+}
+
+def ArrayList<String> getAllJavaDir() {
+    Set<Project> projects = project.rootProject.subprojects
+    List<String> javaDir = new ArrayList<>(projects.size())
+    projects.forEach {
+        javaDir.add("$it.projectDir/src/main/java")
+    }
+    return javaDir
 }
