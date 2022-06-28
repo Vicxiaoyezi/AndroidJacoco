@@ -11,10 +11,13 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-                Hello.Toast(this, "hello Xerneas")
-
-        val t1 = findViewById<View>(R.id.tv) as TextView
+        val t1 = findViewById<View>(R.id.button_first) as TextView
         t1.setOnClickListener {
+            startActivity(Intent(this, FirstActivity::class.java))
+        }
+
+        val t2 = findViewById<View>(R.id.button_second) as TextView
+        t2.setOnClickListener {
             startActivity(Intent(this, SecondActivity::class.java))
         }
     }
