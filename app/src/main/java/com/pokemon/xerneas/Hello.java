@@ -1,7 +1,6 @@
 package com.pokemon.xerneas;
 
 import android.content.Context;
-import android.util.Log;
 import android.widget.Toast;
 
 import androidx.annotation.Nullable;

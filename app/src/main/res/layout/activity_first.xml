@@ -4,12 +4,13 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".SecondActivity">
+    tools:context=".FirstActivity">
 
     <TextView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:gravity="center"
-        android:id="@+id/tv_second"
-        android:text="Hello, Second!" />
+        android:id="@+id/tv_first"
+        android:text="Hello, First!" />
+
 </androidx.constraintlayout.widget.ConstraintLayout>
