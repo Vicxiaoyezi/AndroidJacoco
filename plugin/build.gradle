@@ -16,6 +16,7 @@ dependencies {
         exclude group: 'org.jacoco', module: 'org.jacoco.core'
     }
     implementation project(':jacoco-core')
+    implementation "com.squareup.okhttp3:okhttp:${rootProject.otherDep.okhttp}"
 }
 
 sourceCompatibility = "1.8"

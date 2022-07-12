@@ -5,11 +5,13 @@ import com.android.utils.FileUtils
 import com.jacoco.android.extension.JacocoExtension
 import com.jacoco.android.report.ReportGenerator
 import com.jacoco.android.util.Utils
+import groovy.json.JsonSlurper
 import org.codehaus.groovy.runtime.IOGroovyMethods
 import org.gradle.api.DefaultTask
 import org.gradle.api.tasks.TaskAction
 import org.jacoco.core.data.MethodInfo
 import org.jacoco.core.diff.DiffAnalyzer
+import com.jacoco.android.util.ClientUploadUtils
 
 class BranchDiffTask extends DefaultTask {
     def currentBranch//当前分支
@@ -33,6 +35,9 @@ class BranchDiffTask extends DefaultTask {
         ReportGenerator generator = new ReportGenerator(jacocoExtension.coverageDirectory, toFileList(jacocoExtension.classDirectories),
                 toFileList(jacocoExtension.sourceDirectories), new File(jacocoExtension.reportDirectory))
         generator.create()
+        ClientUploadUtils upload = new ClientUploadUtils()
+        upload.upload(jacocoExtension.reportDirectory)
+        System.out.println("点击链接查看测试报告:" + jacocoExtension.host + "/report/index.html")
     }
 
     def toFileList(List<String> path) {
@@ -53,8 +58,8 @@ class BranchDiffTask extends DefaultTask {
 
         //两个分支差异文件的目录
         File file = new File(gitPth)
-        def currentDir = "${file.getParent()}/temp/${currentBranch}/app"
-        def contrastDir = "${file.getParent()}/temp/${jacocoExtension.contrastBranch}/app"
+        def currentDir = "${file.getParent()}/work/${currentBranch}/app"
+        def contrastDir = "${file.getParent()}/work/${jacocoExtension.contrastBranch}/app"
 
         project.delete(currentDir)
         project.delete(contrastDir)
@@ -161,15 +166,7 @@ class BranchDiffTask extends DefaultTask {
 
     def createDiffMethod(def currentDir, def contrastDir) {
         //生成差异方法
-/*
-        def path="${project.buildDir.getAbsolutePath()}/intermediates/runtime_symbol_list/${getBuildType()}/R.txt"
-        def file=new File(path)
-        List<String> ids=readIdList(file)
-
-        println("createDiffMethod r=${path} exist=${file.exists()} len=${ids.size()}")
-*/
         DiffAnalyzer.getInstance().reset()
-//        DiffAnalyzer.getInstance().setResIdLines(ids)
         DiffAnalyzer.readClasses(currentDir, DiffAnalyzer.CURRENT)
         DiffAnalyzer.readClasses(contrastDir, DiffAnalyzer.BRANCH)
         DiffAnalyzer.getInstance().diff()
@@ -187,23 +184,6 @@ class BranchDiffTask extends DefaultTask {
         }
         println("excludeMethod after diff.size=${DiffAnalyzer.getInstance().getDiffList().size()}")
 
-    }
-
-
-    List<String> readIdList(File file) {
-        List<String> list = new ArrayList<>()
-        try {
-            BufferedReader fis = new BufferedReader(new FileReader(file))
-            String line
-            while ((line = fis.readLine()) != null) {
-                if (line.contains("0x7f"))
-                    list.add(line)
-            }
-            fis.close()
-        } catch (Exception e) {
-            e.printStackTrace()
-        }
-        return list
     }
 
     List<String> getDiffFiles(String diff) {
@@ -247,45 +227,28 @@ class BranchDiffTask extends DefaultTask {
         if (jacocoExtension.coverageDirectory == null) {
             jacocoExtension.coverageDirectory = "${project.buildDir}/outputs/coverage/"
         }
-        def dataDir = jacocoExtension.coverageDirectory
-        new File(dataDir).mkdirs()
+        new File(jacocoExtension.coverageDirectory).mkdirs()
 
         def host = jacocoExtension.host
         def android = project.extensions.android
         def appName = android.defaultConfig.applicationId.replace(".","")
         def versionCode = android.defaultConfig.versionCode
-//        http://10.10.17.105:8080/WebServer/JacocoApi/queryEcFile?appName=dealer&versionCode=100
 
-        def curl = "curl ${host}/WebServer/JacocoApi/queryEcFile?appName=${appName}&versionCode=${versionCode}"
-        println "curl = ${curl}"
+        def curl = "curl ${host}/query?path=/${appName}/${versionCode}"
+        println "execute curl = ${curl}"
         def text = curl.execute().text
-        println "queryEcFile = ${text}"
-        text = text.substring(text.indexOf("[") + 1, text.lastIndexOf("]")).replace("]", "")
-
-        println "paths=${text}"
-
-        if ("" == text) {
-            return
-        }
-        String[] paths = text.split(',')
-        println "下载executionData 文件 length=${paths.length}"
-
+        def paths = new JsonSlurper().parseText(text).ecFiles
         if (paths != null && paths.size() > 0) {
             for (String path : paths) {
-                path = path.replace("\"", '')
                 def name = path.substring(path.lastIndexOf("/") + 1)
-                println "${path}"
-                def file = new File(dataDir, name)
+                def file = new File(jacocoExtension.coverageDirectory, name)
                 if (file.exists() && file.length() > 0) //存在
                     continue
-                println "downloadFile ${host}${path}"
                 println "execute curl -o ${file.getAbsolutePath()} ${host}${path}"
-
                 "curl -o ${file.getAbsolutePath()} ${host}${path}".execute().text
             }
         }
         println "downloadData 下载完成"
-
     }
 
 
@@ -301,15 +264,5 @@ class BranchDiffTask extends DefaultTask {
             return flag
         }
         return false
-    }
-
-    def getBuildType() {
-        def taskNames = project.gradle.startParameter.taskNames
-        for (tn in taskNames) {
-            if (tn.startsWith("assemble")) {
-                return tn.replaceAll("assemble", "").toLowerCase()
-            }
-        }
-        return ""
     }
 }

@@ -15,7 +15,8 @@ android {
         targetCompatibility = "1.8"
     }
 }
+
 dependencies {
     implementation fileTree(dir: "libs", include: ["*.jar"])
-    compileOnly('com.squareup.okhttp3:okhttp:3.14.9')
+    compileOnly("com.squareup.okhttp3:okhttp:${rootProject.otherDep.okhttp}")
 }

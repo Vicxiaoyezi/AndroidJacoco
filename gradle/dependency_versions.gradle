@@ -1,5 +1,6 @@
 ext {
   otherDep = [
-      kotlin: '1.5.31'
+      kotlin: '1.5.31',
+      okhttp: '4.9.3'
   ]
 }
