@@ -139,7 +139,7 @@ public class CodeCoverageManager {
                         .build();
 
                 Request request = new Request.Builder()
-                        .url(URL_HOST + "/upload")
+                        .url(URL_HOST + "/file/upload")
                         .post(requestBody)
                         .build();
                 Response response = client.newCall(request).execute();
