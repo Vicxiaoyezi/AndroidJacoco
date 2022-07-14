@@ -234,7 +234,7 @@ class BranchDiffTask extends DefaultTask {
         def appName = android.defaultConfig.applicationId.replace(".","")
         def versionCode = android.defaultConfig.versionCode
 
-        def curl = "curl ${host}/query?path=/${appName}/${versionCode}"
+        def curl = "curl ${host}/file/query?path=/${appName}/${versionCode}"
         println "execute curl = ${curl}"
         def text = curl.execute().text
         def paths = new JsonSlurper().parseText(text).ecFiles
