@@ -9,7 +9,7 @@ import okhttp3.*;
 public class ClientUploadUtils {
 
     private static String tempPath;
-    private static final String url = "http://localhost:8080/upload";
+    private static final String url = "http://localhost:8080/file/upload";
 
     static private void uploadFile(File file) throws Exception {
         OkHttpClient client = new OkHttpClient();
