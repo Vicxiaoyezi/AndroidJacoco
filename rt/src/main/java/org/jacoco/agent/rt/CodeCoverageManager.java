@@ -12,7 +12,6 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.util.Arrays;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 
 import okhttp3.MediaType;
 import okhttp3.MultipartBody;
@@ -126,45 +125,33 @@ public class CodeCoverageManager {
 
 
     private void syncUploadFiles() throws IOException {
-        OkHttpClient client = buildHttpClient();
+        OkHttpClient client = new OkHttpClient();
         File dir = new File(dirPath);
         if (dir.exists() && dir.list().length > 0) {
 
             Log.d(TAG,"File list="+ Arrays.toString(dir.list()));
             File[] files=dir.listFiles();
-            for (File f : files) {
-                if (!f.getName().endsWith(".ec") || f.length()<=0) continue;
-
-                RequestBody fileBody = RequestBody.create(MediaType.get("application/plain"), f);
-                RequestBody body = new MultipartBody.Builder()
-                        .addFormDataPart("file", f.getName(), fileBody)
-                        .addFormDataPart("appName", APP_NAME)
-                        .addFormDataPart("versionCode", "" + versionCode)
+            for (File file : files) {
+                if (!file.getName().endsWith(".ec") || file.length()<=0) continue;
+                RequestBody requestBody = new MultipartBody.Builder()
+                        .addFormDataPart("files", file.getName(), RequestBody.create(file, MediaType.get("application/plain")))
+                        .addFormDataPart("originalPath", "/" + APP_NAME + "/" + versionCode)
                         .build();
 
-                Response response = client.newCall(new Request.Builder()
-                        .url(URL_HOST + "/WebServer/JacocoApi/uploadEcFile")
-                        .post(body)
-                        .build()).execute();
+                Request request = new Request.Builder()
+                        .url(URL_HOST + "/upload")
+                        .post(requestBody)
+                        .build();
+                Response response = client.newCall(request).execute();
                 if (response.isSuccessful()) {
                     String str = response.body().string();
                     Log.d(TAG, " success =" + str);
-                    if(str.contains("200")){
-                        f.delete();
-                    }
+                    file.delete();
                 } else {
                     Log.e(TAG, " error =" + response.code());
                 }
             }
         }
 
-    }
-
-    private OkHttpClient buildHttpClient() {
-        OkHttpClient client = new OkHttpClient.Builder()
-                .callTimeout(30, TimeUnit.SECONDS)
-                .readTimeout(30, TimeUnit.SECONDS)
-                .build();
-        return client;
     }
 }
