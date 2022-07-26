@@ -17,7 +17,7 @@ git checkout $branchName
 echo "start pull--"
 git pull
 
-echo "start copy: cp -r "${workDir}/app/classes" $outDir "
-cp -r "${workDir}/app/classes" $outDir
+echo "start copy: cp -r $workDir $outDir "
+cp -r $workDir $outDir
 
 echo "copy over --"

@@ -1,5 +1,5 @@
 ext {
   ifDependencies = [
-          androidJacoco: '0.0.0008'
+          androidJacoco: '0.0.0015'
   ]
 }
