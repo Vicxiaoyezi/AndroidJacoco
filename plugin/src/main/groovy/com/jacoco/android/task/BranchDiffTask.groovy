@@ -14,8 +14,6 @@ import org.jacoco.core.diff.DiffAnalyzer
 import com.jacoco.android.util.ClientUploadUtils
 
 class BranchDiffTask extends DefaultTask {
-    def currentBranch//当前分支
-    def gitPth = "git rev-parse --show-toplevel".execute().text.replaceAll("\n", "")
     JacocoExtension jacocoExtension
 
     @TaskAction
@@ -32,7 +30,7 @@ class BranchDiffTask extends DefaultTask {
         if (jacocoExtension.reportDirectory == null) {
             jacocoExtension.reportDirectory = "${project.buildDir.getAbsolutePath()}/outputs/report"
         }
-        ReportGenerator generator = new ReportGenerator(jacocoExtension.coverageDirectory, toFileList(jacocoExtension.classDirectories),
+        ReportGenerator generator = new ReportGenerator(jacocoExtension.coverageDirectory, jacocoExtension.classDirectories,
                 toFileList(jacocoExtension.sourceDirectories), new File(jacocoExtension.reportDirectory))
         generator.create()
         ClientUploadUtils upload = new ClientUploadUtils()
@@ -48,18 +46,17 @@ class BranchDiffTask extends DefaultTask {
     }
 
     def pullDiffClasses() {
-        currentBranch = "git symbolic-ref --short HEAD".execute().text.replaceAll("\n", "")
-
         //获得两个分支的差异文件
-        def diff = "git diff origin/${jacocoExtension.contrastBranch} origin/${currentBranch} --name-only".execute().text
-        List<String> diffFiles = getDiffFiles(diff)
-        println("diffFiles size=" + diffFiles.size())
+        def diff = "git diff origin/${jacocoExtension.contrastBranch} origin/${jacocoExtension.currentBranch} --name-only".execute().text
+        List diffFiles = getDiffFiles(diff)
+        println("diffFiles size=" + (diffFiles[0].size() + diffFiles[1].size()))
         writerDiffToFile(diffFiles)
 
         //两个分支差异文件的目录
-        File file = new File(gitPth)
-        def currentDir = "${file.getParent()}/work/${currentBranch}/app"
-        def contrastDir = "${file.getParent()}/work/${jacocoExtension.contrastBranch}/app"
+        File file = new File(jacocoExtension.gitPath)
+        def workDir = "${file.getParent()}/work/${project.rootProject.name}/"
+        def currentDir = "${workDir}${jacocoExtension.currentBranch}"
+        def contrastDir = "${workDir}${jacocoExtension.contrastBranch}"
 
         project.delete(currentDir)
         project.delete(contrastDir)
@@ -68,7 +65,7 @@ class BranchDiffTask extends DefaultTask {
 
         //先把两个分支的所有class copy到temp目录
         copyBranchClass(jacocoExtension.contrastBranch, contrastDir)
-        copyBranchClass(currentBranch, currentDir)
+        copyBranchClass(jacocoExtension.currentBranch, currentDir)
         //再根据diffFiles 删除不需要的class
         deleteOtherFile(currentDir, diffFiles)
         deleteOtherFile(contrastDir, diffFiles)
@@ -80,17 +77,57 @@ class BranchDiffTask extends DefaultTask {
         writerDiffMethodToFile()
     }
 
-    def writerDiffToFile(List<String> diffFiles) {
+    List getDiffFiles(String diff) {
+        List<String> diffClassFiles = new ArrayList<>()
+        List<String> diffOriginalFiles = new ArrayList<>()
+        List diffFiles = [diffClassFiles, diffOriginalFiles]
+        if (diff == null || diff == '') {
+            return diffFiles
+        }
+        String[] strings = diff.split("\n")
+        strings.each {
+            if (isInclude(it)){
+                if (!isExclude(it)){
+                    if (it.endsWith('.class')) {
+                        diffFiles[0].add(it)
+                    } else if (it.endsWith('.kt') | it.endsWith('.java')){
+                        diffFiles[1].add(it)
+                    }
+                }
+            }
+        }
+        return diffFiles
+    }
+
+    def isInclude(String path) {
+        List<String> includes = jacocoExtension.includes
+        for (String str : includes) {
+            if (path.contains(str.replaceAll("\\.", "/"))) {
+                return true
+            }
+        }
+        return false
+    }
+
+    def isExclude(String path){
+        if (jacocoExtension.excludeClass != null) {
+            boolean exclude = jacocoExtension.excludeClass.call(path)
+            if (exclude) {
+                return true
+            }
+        }
+        return false
+    }
+
+    def writerDiffToFile(List diffFiles) {
         String path = "${project.buildDir.getAbsolutePath()}/outputs/diff/diffFiles.txt"
         File parent = new File(path).getParentFile()
         if (!parent.exists()) parent.mkdirs()
-
-        println("writerDiffToFile size=" + diffFiles.size() + " to >" + path)
-
         FileOutputStream fos = new FileOutputStream(path)
-        for (String str : diffFiles) {
-            fos.write((str + "\n").getBytes())
-        }
+        for (List<String> files: diffFiles)
+            for (String str : files) {
+                fos.write((str + "\n").getBytes())
+            }
         fos.close()
     }
 
@@ -103,15 +140,19 @@ class BranchDiffTask extends DefaultTask {
     }
 
     def deleteOtherFile(String dirPath, List<String> diffFiles) {
-        def targetPath
-        if (project.rootDir.getPath() == gitPth){
-            targetPath = "app"
-        } else {
-            targetPath = project.rootDir.getPath().replace("${gitPth}/", "") + "/app"
-        }
+        def diffClassFiles = diffFiles[0].toString()
+        def diffOriginalFiles = diffFiles[1].toString()
         readFiles(dirPath, {
-            String path = ((File) it).getAbsolutePath().replace(dirPath, targetPath)
-            return diffFiles.contains(path)
+            String path = ((File) it).getAbsolutePath().replace(dirPath, "")
+            if (diffClassFiles.contains(path)){
+                path = path.replace(".class", "")
+                if (path.contains("\$")) {
+                    path = path.substring(0, path.indexOf("\$"))
+                }
+                return !diffOriginalFiles.contains(path)
+            } else {
+                return true
+            }
         })
     }
 
@@ -126,7 +167,7 @@ class BranchDiffTask extends DefaultTask {
                 readFiles(classFile.getAbsolutePath(), closure)
             } else {
                 if (classFile.getName().endsWith(".class")) {
-                    if (!closure.call(classFile)) {
+                    if (closure.call(classFile)) {
                         classFile.delete()
                     }
                 } else {
@@ -143,13 +184,13 @@ class BranchDiffTask extends DefaultTask {
             cmds[0] = jacocoExtension.getGitBashPath()
             cmds[1] = jacocoExtension.copyClassShell
             cmds[2] = contrastBranch
-            cmds[3] = project.rootDir.getAbsolutePath()
+            cmds[3] = jacocoExtension.classDirectories
             cmds[4] = contrastDir.toString()
         } else {
             cmds = new String[4]
             cmds[0] = jacocoExtension.copyClassShell
             cmds[1] = contrastBranch
-            cmds[2] = project.rootDir.getAbsolutePath()
+            cmds[2] = jacocoExtension.classDirectories
             cmds[3] = contrastDir.toString()
         }
 
@@ -166,7 +207,15 @@ class BranchDiffTask extends DefaultTask {
 
     def createDiffMethod(def currentDir, def contrastDir) {
         //生成差异方法
+/*
+        def path="${project.buildDir.getAbsolutePath()}/intermediates/runtime_symbol_list/${getBuildType()}/R.txt"
+        def file=new File(path)
+        List<String> ids=readIdList(file)
+
+        println("createDiffMethod r=${path} exist=${file.exists()} len=${ids.size()}")
+*/
         DiffAnalyzer.getInstance().reset()
+//        DiffAnalyzer.getInstance().setResIdLines(ids)
         DiffAnalyzer.readClasses(currentDir, DiffAnalyzer.CURRENT)
         DiffAnalyzer.readClasses(contrastDir, DiffAnalyzer.BRANCH)
         DiffAnalyzer.getInstance().diff()
@@ -186,41 +235,22 @@ class BranchDiffTask extends DefaultTask {
 
     }
 
-    List<String> getDiffFiles(String diff) {
-        List<String> diffFiles = new ArrayList<>()
-        if (diff == null || diff == '') {
-            return diffFiles
-        }
-        String[] strings = diff.split("\n")
-        def classes = "/classes/"
-        strings.each {
-            if (it.endsWith('.class')) {
-                String classPath = it.substring(it.indexOf(classes) + classes.length())
-                if (isInclude(classPath)) {
-                    if (jacocoExtension.excludeClass != null) {
-                        boolean exclude = jacocoExtension.excludeClass.call(it)
-                        if (!exclude) {
-                            diffFiles.add(it)
-                        }
-                    } else {
-                        diffFiles.add(it)
-                    }
-                }
-            }
-        }
-        return diffFiles
-    }
 
-    def isInclude(String classPath) {
-        List<String> includes = jacocoExtension.includes
-        for (String str : includes) {
-            if (classPath.startsWith(str.replaceAll("\\.", "/"))) {
-                return true
+    List<String> readIdList(File file) {
+        List<String> list = new ArrayList<>()
+        try {
+            BufferedReader fis = new BufferedReader(new FileReader(file))
+            String line
+            while ((line = fis.readLine()) != null) {
+                if (line.contains("0x7f"))
+                    list.add(line)
             }
+            fis.close()
+        } catch (Exception e) {
+            e.printStackTrace()
         }
-        return false
+        return list
     }
-
 
     //下载ec数据文件
     def downloadEcData() {
@@ -264,5 +294,15 @@ class BranchDiffTask extends DefaultTask {
             return flag
         }
         return false
+    }
+
+    def getBuildType() {
+        def taskNames = project.gradle.startParameter.taskNames
+        for (tn in taskNames) {
+            if (tn.startsWith("assemble")) {
+                return tn.replaceAll("assemble", "").toLowerCase()
+            }
+        }
+        return ""
     }
 }
