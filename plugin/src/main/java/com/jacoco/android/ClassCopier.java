@@ -15,8 +15,8 @@ public class ClassCopier extends ClassProcessor {
 
     private String classDir;
 
-    public ClassCopier(String classDir, List<String> includes) {
-        super(includes);
+    public ClassCopier(String classDir, List<String> includes, List<String> excludes) {
+        super(includes, excludes);
         this.classDir = classDir;
     }
 

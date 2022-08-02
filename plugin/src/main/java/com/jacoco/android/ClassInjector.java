@@ -36,8 +36,8 @@ import java.util.zip.ZipOutputStream;
 
 public class ClassInjector extends ClassProcessor {
 
-    public ClassInjector(List<String> includes) {
-        super(includes);
+    public ClassInjector(List<String> includes, List<String> excludes) {
+        super(includes, excludes);
     }
 
     @Override

@@ -10,6 +10,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -19,10 +20,12 @@ import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
 
 public abstract class ClassProcessor {
-    private List<String> includes;
+    private final List<String> includes;
+    private final List<String> excludes;
 
-    public ClassProcessor(List<String> includes) {
+    public ClassProcessor(List<String> includes, List<String> excludes) {
         this.includes = includes;
+        this.excludes = excludes;
     }
 
     public void doClass(File fileIn, File fileOut) throws IOException {
@@ -31,10 +34,10 @@ public abstract class ClassProcessor {
 
     public void doJar(File jarIn, File jarOut) throws IOException {
         try {
-            processJar(jarIn, jarOut, Charset.forName("UTF-8"), Charset.forName("UTF-8"));
+            processJar(jarIn, jarOut, StandardCharsets.UTF_8);
         } catch (IllegalArgumentException e) {
             if ("MALFORMED".equals(e.getMessage())) {
-                processJar(jarIn, jarOut, Charset.forName("GBK"), Charset.forName("UTF-8"));
+                processJar(jarIn, jarOut, Charset.forName("GBK"));
             } else {
                 throw e;
             }
@@ -42,14 +45,14 @@ public abstract class ClassProcessor {
     }
 
     @SuppressWarnings("NewApi")
-    private void processJar(File jarIn, File jarOut, Charset charsetIn, Charset charsetOut) throws IOException {
+    private void processJar(File jarIn, File jarOut, Charset charsetIn) throws IOException {
         ZipFile zipFile = new ZipFile(jarIn);
         ZipInputStream zis = null;
         ZipOutputStream zos = null;
         try {
             zis = new ZipInputStream(new BufferedInputStream(new FileInputStream(jarIn)), charsetIn);
             if (jarOut != null)
-                zos = new ZipOutputStream(new BufferedOutputStream(new FileOutputStream(jarOut)), charsetOut);
+                zos = new ZipOutputStream(new BufferedOutputStream(new FileOutputStream(jarOut)), StandardCharsets.UTF_8);
             ZipEntry entryIn;
             Set<String> processedEntryNamesMap = new HashSet<>();
             while ((entryIn = zis.getNextEntry()) != null) {
@@ -103,7 +106,6 @@ public abstract class ClassProcessor {
     }
 
     boolean shouldIncludeClass(File fileIn) {
-//        System.out.println("processClass 2 ="+className);
         return shouldIncludeClass(filePath2ClassName(fileIn));
     }
 
@@ -123,6 +125,10 @@ public abstract class ClassProcessor {
 
         for (String include : includes) {
             if (className.startsWith(include.replaceAll("\\.", "/"))) {
+                for (String exclude : excludes) {
+//                    System.out.println("processClass 2 ="+className);
+                    return !className.contains(exclude);
+                }
                 return true;
             }
         }
