@@ -37,8 +37,4 @@ class JacocoExtension {
         includes = includes.collect {include -> return include.replaceAll("\\.", "/")}
         return includes
     }
-
-    String getTempClassDir(){
-        return classDirectories.replace("$gitPath/", "")
-    }
 }

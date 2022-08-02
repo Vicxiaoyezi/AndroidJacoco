@@ -96,10 +96,11 @@ class BranchDiffTask extends DefaultTask {
     }
 
     def deleteOtherFile(String dirPath, List<String> diffFiles) {
+        def tempClassDir = jacocoExtension.classDirectories.replace("${project.rootDir.getAbsolutePath()}/", "")
         def diffFilesStr = diffFiles.toString()
         deleteFile(dirPath, {
             def path = ((File) it).getAbsolutePath()
-            path = path.substring(path.indexOf(jacocoExtension.tempClassDir) + jacocoExtension.tempClassDir.length(), path.indexOf(".class"))
+            path = path.substring(path.indexOf(tempClassDir) + tempClassDir.length(), path.indexOf(".class"))
             if (path.contains("\$")) {
                 path = path.substring(0, path.indexOf("\$"))
             }
@@ -128,7 +129,8 @@ class BranchDiffTask extends DefaultTask {
     }
 
     private void copyBranchClass(GString contrastDir, GString currentDir) {
-        String[] cmds = [jacocoExtension.copyClassShell, jacocoExtension.contrastBranch, jacocoExtension.currentBranch, jacocoExtension.tempClassDir, contrastDir, currentDir]
+        def tempClassDir = jacocoExtension.classDirectories.replace("${project.rootDir.getAbsolutePath()}/", "")
+        String[] cmds = [jacocoExtension.copyClassShell, jacocoExtension.contrastBranch, jacocoExtension.currentBranch, tempClassDir, contrastDir, currentDir]
         println("cmds=" + cmds)
 
         Process process = cmds.execute()
