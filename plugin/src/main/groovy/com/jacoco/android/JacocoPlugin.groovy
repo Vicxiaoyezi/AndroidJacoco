@@ -1,6 +1,8 @@
 package com.jacoco.android
 
 import com.android.build.gradle.AppExtension
+import com.jacoco.android.extension.JacocoExtension
+import com.jacoco.android.task.BranchDiffTask
 import org.gradle.api.GradleException
 import org.gradle.api.Plugin
 import org.gradle.api.Project
@@ -10,7 +12,7 @@ class JacocoPlugin implements Plugin<Project> {
 
     @Override
     void apply(Project project) {
-        com.jacoco.android.extension.JacocoExtension jacocoExtension = project.extensions.create("jacocoCoverageConfig", com.jacoco.android.extension.JacocoExtension)
+        JacocoExtension jacocoExtension = project.extensions.create("jacocoCoverageConfig", JacocoExtension)
 
         project.configurations.all { configuration ->
             def name = configuration.name
@@ -23,7 +25,7 @@ class JacocoPlugin implements Plugin<Project> {
 
 
         if (android instanceof AppExtension) {
-            com.jacoco.android.JacocoTransform jacocoTransform = new com.jacoco.android.JacocoTransform(project, jacocoExtension)
+            JacocoTransform jacocoTransform = new JacocoTransform(project, jacocoExtension)
             android.registerTransform(jacocoTransform)
             // throw an exception in instant run mode
             android.applicationVariants.all { variant ->
@@ -33,17 +35,15 @@ class JacocoPlugin implements Plugin<Project> {
                     if (instantRunTask) {
                         throw new GradleException("不支持instant run")
                     }
-                } catch (UnknownTaskException e) {
+                } catch (UnknownTaskException ignored) {
                 }
             }
         }
 
         project.afterEvaluate {
             android.applicationVariants.all { variant ->
-                def variantName = variant.name.capitalize()
-
                 if (project.tasks.findByName('generateReport') == null) {
-                    com.jacoco.android.task.BranchDiffTask branchDiffTask = project.tasks.create('generateReport', com.jacoco.android.task.BranchDiffTask)
+                    BranchDiffTask branchDiffTask = project.tasks.create('generateReport', BranchDiffTask)
                     branchDiffTask.setGroup("jacoco")
                     branchDiffTask.jacocoExtension = jacocoExtension
                 }

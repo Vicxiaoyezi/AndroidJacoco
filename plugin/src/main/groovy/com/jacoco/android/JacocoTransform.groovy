@@ -5,12 +5,9 @@ import com.android.build.gradle.internal.pipeline.TransformManager
 import com.android.utils.FileUtils
 import com.jacoco.android.extension.JacocoExtension
 import com.jacoco.android.task.BranchDiffTask
-import com.jacoco.android.util.Utils
 import groovy.io.FileType
-import org.codehaus.groovy.runtime.IOGroovyMethods
 import org.gradle.api.Project
 import org.jacoco.core.diff.DiffAnalyzer
-import org.jacoco.core.tools.Util
 
 class JacocoTransform extends Transform {
     Project project
@@ -22,6 +19,7 @@ class JacocoTransform extends Transform {
         this.jacocoExtension = jacocoExtension
     }
 
+    // transformClassesWithJacocoForxxx
     @Override
     String getName() {
         return "jacoco"
@@ -52,9 +50,11 @@ class JacocoTransform extends Transform {
         }
 
         transformInvocation.inputs.each { input ->
+            // 包含我们手写的 Class 类及 R.class、BuildConfig.class 等
             input.directoryInputs.each { dirInput ->
                 dirInputs.add(dirInput)
             }
+            // jar文件，如第三方依赖
             input.jarInputs.each { jarInput ->
                 jarInputs.add(jarInput)
             }
@@ -63,7 +63,8 @@ class JacocoTransform extends Transform {
         if (!dirInputs.isEmpty() || !jarInputs.isEmpty()) {
             if (jacocoExtension.jacocoEnable) {
                 //copy class到 app/classes
-                copy(transformInvocation, dirInputs, jarInputs, jacocoExtension.includes)
+                println( jacocoExtension.includes)
+                copy(transformInvocation, dirInputs, jarInputs, jacocoExtension.includes, jacocoExtension.excludes)
                 //提交classes 到git
                 gitPush(jacocoExtension.gitPushShell, "jacoco auto commit")
                 //获取差异方法集
@@ -71,16 +72,17 @@ class JacocoTransform extends Transform {
                 branchDiffTask.pullDiffClasses()
             }
             //对diff方法插入探针
-            inject(transformInvocation, dirInputs, jarInputs, jacocoExtension.includes)
+            inject(transformInvocation, dirInputs, jarInputs, jacocoExtension.includes, jacocoExtension.excludes)
 
         }
     }
 
-    def copy(TransformInvocation transformInvocation, def dirInputs, def jarInputs, List<String> includes) {
-        def classDir = "${project.projectDir}/classes"
+    def copy(TransformInvocation transformInvocation, def dirInputs, def jarInputs, List<String> includes, List<String> excludes) {
+        def classDir = jacocoExtension.classDirectories
         println("copy class classDir:" + classDir)
         println("copy class includes:" + includes)
-        ClassCopier copier = new ClassCopier(classDir, includes)
+        println("copy class excludes:" + excludes)
+        ClassCopier copier = new ClassCopier(classDir, includes, excludes)
         if (!transformInvocation.incremental) {
             FileUtils.deletePath(new File(classDir))
         }
@@ -130,9 +132,9 @@ class JacocoTransform extends Transform {
 
     }
 
-    def inject(TransformInvocation transformInvocation, def dirInputs, def jarInputs, List<String> includes) {
+    def inject(TransformInvocation transformInvocation, def dirInputs, def jarInputs, List<String> includes, List<String> excludes) {
 
-        ClassInjector injector = new ClassInjector(includes)
+        ClassInjector injector = new ClassInjector(includes, excludes)
         if (!dirInputs.isEmpty()) {
             dirInputs.each { dirInput ->
                 File dirOutput = transformInvocation.outputProvider.getContentLocation(dirInput.getName(),
@@ -220,44 +222,19 @@ class JacocoTransform extends Transform {
     }
 
     def gitPush(String shell, String commitMsg) {
-        println("jacoco 执行git命令")
-//
-        String[] cmds
-        if (Utils.windows) {
-            cmds = new String[3]
-            cmds[0] = jacocoExtension.getGitBashPath()
-            cmds[1] = shell
-            cmds[2] = commitMsg
-        } else {
-            cmds = new String[2]
-            cmds[0] = shell
-            cmds[1] = commitMsg
-        }
+        String[] cmds = [shell, jacocoExtension.classDirectories, commitMsg]
         println("cmds=" + cmds)
-        Process proc = Runtime.getRuntime().exec(cmds)
-        String result = IOGroovyMethods.getText(new BufferedReader(new InputStreamReader(proc.getIn())))
-        String error = IOGroovyMethods.getText(new BufferedReader(new InputStreamReader(proc.getErr())))
 
-        println("jacoco git success :" + result)
-        println("jacoco git error :" + error)
-
-        proc.closeStreams()
+        Process process = cmds.execute()
+        def out = new StringBuilder()
+        def err = new StringBuilder()
+        process.consumeProcessOutput( out, err )
+        process.waitFor()
+        if( out.size() > 0 ) println ("jacoco git success :\n" + out)
+        if( err.size() > 0 ) println ("jacoco git error :\n" + err)
     }
 
-    String getUniqueHashName(File fileInput) {
-        final String fileInputName = fileInput.getName()
-        if (fileInput.isDirectory()) {
-            return fileInputName
-        }
-        final String parentDirPath = fileInput.getParentFile().getAbsolutePath()
-        final String pathMD5 = Util.MD5(parentDirPath)
-        final int extSepPos = fileInputName.lastIndexOf('.')
-        final String fileInputNamePrefix =
-                (extSepPos >= 0 ? fileInputName.substring(0, extSepPos) : fileInputName)
-        return fileInputNamePrefix + '_' + pathMD5
-    }
-
-    def getClassName(File f) {
+    static def getClassName(File f) {
         return ClassProcessor.filePath2ClassName(f).replaceAll(".class", "")
     }
 }

@@ -40,7 +40,7 @@ public class ReportGenerator {
     private final String title;
 
     private final String coverageDirectory;
-    private final List<File> classesDirectories;
+    private final String classesDirectories;
     private final List<File> sourceDirectories;
     private final File reportDirectory;
 
@@ -49,7 +49,7 @@ public class ReportGenerator {
     /**
      * Create a new generator based for the given project.
      */
-    public ReportGenerator(final String coverageDir, List<File> classesDir, List<File> sourceDir, File reportDir) {
+    public ReportGenerator(final String coverageDir, String classesDir, List<File> sourceDir, File reportDir) {
         this.title = "CodeCoverageReport";
         this.coverageDirectory = coverageDir;
         this.classesDirectories = classesDir;
@@ -174,9 +174,8 @@ public class ReportGenerator {
                 execFileLoader.getExecutionDataStore(), coverageBuilder);
 
         if (classesDirectories != null && !classesDirectories.isEmpty()) {
-            for (File classDir : classesDirectories) {
-                analyzer.analyzeAll(classDir);
-            }
+            File classDir = new File(classesDirectories);
+            analyzer.analyzeAll(classDir);
         }
 
         return coverageBuilder.getBundle(title);
