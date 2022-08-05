@@ -12,9 +12,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 
 public class DiffAnalyzer {
@@ -28,19 +26,12 @@ public class DiffAnalyzer {
     
     Set<String> diffClass = new HashSet<>();
 
-    //int anim abc_tooltip_enter 0x7f01000a
-    List<String> resIdLines = new ArrayList<>();//资源id集
-
-    private static DiffAnalyzer instance;
+    private static final class InstanceHolder {
+        static final DiffAnalyzer instance = new DiffAnalyzer();
+    }
 
     public static DiffAnalyzer getInstance() {
-        if (instance == null) {
-            synchronized (DiffAnalyzer.class) {
-                if (instance == null)
-                    instance = new DiffAnalyzer();
-            }
-        }
-        return instance;
+        return InstanceHolder.instance;
     }
 
     public void addMethodInfo(MethodInfo methodInfo, int type) {
@@ -114,6 +105,7 @@ public class DiffAnalyzer {
             return;
         }
         File[] files = file.listFiles();
+        assert files != null;
         for (File classFile : files) {
             if (classFile.isDirectory()) {
                 readClasses(classFile.getAbsolutePath(), type);
@@ -155,13 +147,5 @@ public class DiffAnalyzer {
                 // Ignored.
             }
         }
-    }
-
-    public List<String> getResIdLines() {
-        return resIdLines;
-    }
-
-    public void setResIdLines(List<String> resIdLines) {
-        this.resIdLines = resIdLines;
     }
 }
