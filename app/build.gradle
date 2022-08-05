@@ -11,17 +11,13 @@ jacocoCoverageConfig {
     host = "http://10.0.0.99:8080"//下载服务host
     coverageDirectory = "${project.buildDir.absolutePath}/outputs/coverage"//ec 下载存放路径
     sourceDirectories = getAllJavaDir() //源码路径
-    classDirectories = ["${rootProject.projectDir.absolutePath}/app/classes"] //classes 路径
+    classDirectories = "${project.projectDir.absolutePath}/classes/" //classes 路径
     gitPushShell = "${project.projectDir}/shell/gitPushShell.sh" //提交git 命令
     copyClassShell = "${project.projectDir}/shell/pullDiffClass.sh" //copy classes 命令
     includes = ['com.pokemon.xerneas'] //要 包含的class 包名
-    excludeClass = { // return true 表示要排除的class
-//        println("exclude it=${it}")
-//        return it.contains("databinding")
-        return false
-    }
+    excludes = []
     excludeMethod = {//return true 表示要排除此方法
-//        println("excludeMethod it=${it}")
+//        return it.contains("databinding")
         return false
     }
 }

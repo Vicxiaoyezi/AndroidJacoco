@@ -1,23 +1,19 @@
 #!/bin/sh
-echo "执行 pullDiffClass.sh"
-echo "执行命令：git symbolic-ref --short HEAD"
-currentBranch=$(git symbolic-ref --short HEAD)
-echo "当前分支：$currentBranch"
+echo "执行: pullDiffClass.sh"
+contrastBranch=$1
+currentBranch=$2
+classDir=$3
+contrastDir=$4
+currentDir=$5
 
-branchName=$1
-workDir=$2
-outDir=$3
-echo "branchName=$branchName"
-echo "workDir=$workDir"
-echo "outDir=$outDir"
-
-echo "start checkout: git checkout $branchName"
-git checkout $branchName
-
-echo "start pull--"
+echo "start checkout: git checkout $contrastBranch"
+git checkout $contrastBranch
 git pull
+git diff $contrastBranch $currentBranch --name-only --relative $classDir | xargs -n1 -I {} rsync -R {} $contrastDir"$(dirname {})"
 
-echo "start copy: cp -r "${workDir}/app/classes" $outDir "
-cp -r "${workDir}/app/classes" $outDir
+echo "start checkout: git checkout $currentBranch"
+git checkout $currentBranch
+git pull
+git diff $contrastBranch $currentBranch --name-only --relative $classDir | xargs -n1 -I {} rsync -R {} $currentDir"$(dirname {})"
 
 echo "copy over --"
