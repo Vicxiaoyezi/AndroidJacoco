@@ -14,6 +14,6 @@ public class Hello {
         } catch (@Nullable Exception e) {
             e.printStackTrace();
         }
-        Toast.makeText(context, "" + s.length(), Toast.LENGTH_LONG).show();
+        Toast.makeText(context, "" + s, Toast.LENGTH_LONG).show();
     }
 }

@@ -11,7 +11,7 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        //        Hello.Toast(this, "hello Xerneas")
+                Hello.Toast(this, "hello Xerneas")
 
         val t1 = findViewById<View>(R.id.tv) as TextView
         t1.setOnClickListener {
