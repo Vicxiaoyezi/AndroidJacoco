@@ -6,16 +6,18 @@ import com.jacoco.android.extension.JacocoExtension
 import com.jacoco.android.report.ReportGenerator
 import groovy.json.JsonSlurper
 import org.gradle.api.DefaultTask
+import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.TaskAction
 import org.jacoco.core.data.MethodInfo
 import org.jacoco.core.diff.DiffAnalyzer
 import com.jacoco.android.util.ClientUploadUtils
 
 class BranchDiffTask extends DefaultTask {
+    @Input
     JacocoExtension jacocoExtension
 
     @TaskAction
-    def getDiffClass() {
+    void getDiffClass() {
         println "downloadEcData start"
         downloadEcData()
         println "downloadEcData end"
