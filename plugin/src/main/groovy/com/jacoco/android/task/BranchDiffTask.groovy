@@ -128,6 +128,7 @@ class BranchDiffTask extends DefaultTask {
             if (path.contains("\$")) {
                 path = path.substring(0, path.indexOf("\$"))
             }
+            path = path + "."
             return !diffFilesStr.contains(path)
         })
     }
