@@ -4,6 +4,8 @@ class JacocoExtension {
     boolean jacocoEnable
     String contrastBranch
     String currentBranch = "git symbolic-ref --short HEAD".execute().text.replaceAll("\n", "")
+    String sourceContrastBranch
+    String sourceCurrentBranch
     String host
     String coverageDirectory
     List<String> sourceDirectories
