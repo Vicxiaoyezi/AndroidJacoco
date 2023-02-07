@@ -69,7 +69,7 @@ class BranchDiffTask extends DefaultTask {
     def pullDiffClasses() {
         //获得两个分支的差异文件
         def includes = jacocoExtension.includes.collect {include -> return "*main/java/$include*"}.join(" ")
-        def diff = "git diff origin/${jacocoExtension.contrastBranch} origin/${jacocoExtension.currentBranch} --name-only $includes".execute().text
+        def diff = "git diff origin/${jacocoExtension.sourceContrastBranch} origin/${jacocoExtension.sourceCurrentBranch} --name-only $includes".execute().text
         List<String> diffFiles = diff.split("\n")
         writerDiffToFile(diffFiles)
 
